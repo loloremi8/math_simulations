@@ -69,7 +69,7 @@ x1_calm, y1_calm, x2_calm, y2_calm = calculate_xy(calm_positions, L1, L2)
 x1_chaotic, y1_chaotic, x2_chaotic, y2_chaotic = calculate_xy(chaotic_positions, L1, L2)
 
 # Animation
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+fig, ax = plt.subplots(1, 2, figsize=(19.2, 10.8), dpi=100)
 
 for a in ax:
     a.set_xlim(-2.5, 2.5)

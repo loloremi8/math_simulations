@@ -5,12 +5,12 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 
 # Simulation parameters
-Lx, Ly, Lz = 1, 1, 1         # Domain size
-Nx, Ny, Nz = 40, 40, 40      # Grid points
+Lx, Ly, Lz = 2, 2, 2         # Domain size
+Nx, Ny, Nz = 100, 100, 100   # Grid points
 dx, dy, dz = Lx / Nx, Ly / Ny, Lz / Nz
-c = 50                       # Wave speed
+c = 85                       # Wave speed
 dt = 0.00005                 # Time step
-Nt = 600                     # Number of time steps
+Nt = 800                     # Number of time steps
 
 # CFL condition
 if c * dt / min(dx, dy, dz) > 1:
@@ -21,10 +21,10 @@ u = np.zeros((Nt, Nx, Ny, Nz))
 x = np.linspace(0, Lx, Nx)
 y = np.linspace(0, Ly, Ny)
 z = np.linspace(0, Lz, Nz)
-X, Y, Z = np.meshgrid(x, y, z)
+X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
 
 # Initial conditions: Gaussian pulse
-u[0, :, :, :] = np.exp(-100 * ((X - 0.5)**2 + (Y - 0.5)**2 + (Z - 0.5)**2))
+u[0, :, :, :] = np.exp(-100 * ((X - 1)**2 + (Y - 1)**2 + (Z - 1)**2))
 u[1, :, :, :] = u[0, :, :, :]  # Initial velocity = 0
 
 # Finite difference method
@@ -38,7 +38,7 @@ for n in range(1, Nt - 1):
                                    (c * dt / dz)**2 * (u[n, i, j, k+1] - 2 * u[n, i, j, k] + u[n, i, j, k-1]))
 
 # Directory to save frames
-output_dir = "frames"
+output_dir = "frames_wave_propagation_3D_ver_2"
 os.makedirs(output_dir, exist_ok=True)
 
 # Animation: Visualizing slices
@@ -50,15 +50,15 @@ ax.view_init(elev=15, azim=45) # Set initial viewing angle
 def update(frame):
     ax.clear()
     plot = ax.plot_surface(X[:, :, slice_idx], Y[:, :, slice_idx], u[frame, :, :, slice_idx], cmap="viridis")
-    ax.set_title(f"3D Wave Propagation (Slice at z=0.5), Frame {frame}")
+    ax.set_title(f"3D Wave Propagation (Slice at z=1), Frame {frame}")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("u(x, y, t)")
     ax.set_zlim(-1, 1)
+    ax.set_box_aspect([Lx, Ly, Lz])
     
     # Save the current frame as a PNG image
     plt.savefig(f"{output_dir}/frame_{frame:04d}.png", dpi=200)
-    return plot,
 
 # Create the animation
 ani = FuncAnimation(fig, update, frames=Nt, interval=50)
