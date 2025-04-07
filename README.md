@@ -33,7 +33,6 @@ This repository contains various mathematical simulations implemented in Python.
 - **File:** `henon_map_zoom.py`
 - **Description:** Simulates the Henon map and allows interactive zooming into specific regions of the phase plane.
 - **Visualization:** Phase plane plot with zoom functionality.
-- **Warning:** This is still WIP the zoom doesn't properly  work.
 
 ### 7. Kuramoto-Sivashinsky Equation Comparison
 - **File:** `kuramoto-sivashinsky_equation_comparison.py`
