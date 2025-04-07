@@ -7,8 +7,8 @@ a = 1.4
 b = 0.3
 
 # Number of iterations
-n_iterations = 10000
-n_iterations_zoom = 50000
+n_iterations = 20000
+n_iterations_zoom = 20000
 
 # Initial condition
 x0, y0 = 0.1, 0.1
@@ -26,11 +26,11 @@ for n in range(1, n_iterations):
     y[n] = b * x[n - 1]
 
 # Plotting the Henon map
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 7.5))
 
 # Plot the full Henon map in both panels initially
 sc1 = ax1.scatter(x, y, s=1, color='blue', alpha=0.6)
-sc2 = ax2.scatter(x, y, s=1, color='blue', alpha=0.6)  # Initialize right plot with full map
+sc2 = ax2.scatter(x, y, s=1, color='blue', alpha=0.6)
 
 ax1.set_title("Henon Map")
 ax2.set_title("Zoomed View")
@@ -38,7 +38,7 @@ for ax in [ax1, ax2]:
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.grid(True)
-    ax.set_xlim(-1.5, 1.5)  # Set same initial limits for both plots
+    ax.set_xlim(-1.5, 1.5)
     ax.set_ylim(-0.4, 0.4)
 
 # Add a square zoom box (making sure width equals height)
@@ -59,9 +59,50 @@ def on_click(event):
     if event.inaxes != ax1:
         return
     # Center the square on the click
-    size = zoom_rect.get_width()  # Use width since it's a square
+    size = zoom_rect.get_width()  # Use width of the square
     zoom_rect.set_xy((event.xdata - size/2, event.ydata - size/2))
     fig.canvas.draw()
+
+def generate_points_in_bounds(x_min, x_max, y_min, y_max, n_points=None):
+    """Generate points for the Henon map within specified bounds."""
+    if n_points is None:
+        n_points = n_iterations_zoom
+
+    x_points = []
+    y_points = []
+    
+    # Find a valid starting point on the attractor
+    x_temp = 0.1  # Start from a known point on attractor
+    y_temp = 0.1
+    
+    # Warmup to get onto attractor
+    for _ in range(1000):
+        x_new = 1 - a * x_temp**2 + y_temp
+        y_new = b * x_temp
+        x_temp, y_temp = x_new, y_new
+    
+    # Generate many more points than needed to ensure we get enough in bounds
+    max_iterations = n_points * 100
+    
+    for _ in range(max_iterations):
+        x_new = 1 - a * x_temp**2 + y_temp
+        y_new = b * x_temp
+        
+        if (x_min <= x_new <= x_max and y_min <= y_new <= y_max):
+            x_points.append(x_new)
+            y_points.append(y_new)
+            
+            # Break if we have enough points
+            if len(x_points) >= n_points:
+                break
+                
+        x_temp, y_temp = x_new, y_new
+
+    # Convert to numpy arrays
+    x_points = np.array(x_points)
+    y_points = np.array(y_points)
+    
+    return x_points, y_points
 
 def on_enter(event):
     if event.key != 'enter':
@@ -69,7 +110,7 @@ def on_enter(event):
 
     # Get the zoom area coordinates
     x_min, y_min = zoom_rect.get_xy()
-    size = zoom_rect.get_width()  # Use width since it's a square
+    size = zoom_rect.get_width()
     x_max = x_min + size
     y_max = y_min + size
 
@@ -83,41 +124,15 @@ def on_enter(event):
         'size': size
     })
 
-    # Generate new points in the zoomed area
-    x_zoom = np.zeros(n_iterations_zoom)
-    y_zoom = np.zeros(n_iterations_zoom)
-    
-    # Start from multiple points near the center
-    points_found = 0
-    for dx in np.linspace(-size/4, size/4, 10):
-        for dy in np.linspace(-size/4, size/4, 10):
-            x_zoom[0] = center_x + dx
-            y_zoom[0] = center_y + dy
-            
-            for i in range(1, n_iterations_zoom):
-                x_zoom[i] = 1 - a * x_zoom[i-1]**2 + y_zoom[i-1]
-                y_zoom[i] = b * x_zoom[i-1]
-                
-                if (x_min <= x_zoom[i] <= x_max and y_min <= y_zoom[i] <= y_max):
-                    points_found += 1
-
-            if points_found > 100:
-                break
-        if points_found > 100:
-            break
-
-    # Filter points within the zoom window
-    mask = ((x_zoom >= x_min) & (x_zoom <= x_max) & 
-            (y_zoom >= y_min) & (y_zoom <= y_max))
-    x_filtered = x_zoom[mask]
-    y_filtered = y_zoom[mask]
+    # Generate new points specifically for the zoomed area
+    x_filtered, y_filtered = generate_points_in_bounds(x_min, x_max, y_min, y_max)
 
     # Update the zoomed view
     sc2.set_offsets(np.c_[x_filtered, y_filtered])
     ax2.set_xlim(x_min, x_max)
     ax2.set_ylim(y_min, y_max)
     
-    # Make zoom square smaller for next zoom while keeping it centered
+    # Make zoom square smaller for next zoom
     new_size = size/2
     zoom_rect.set_width(new_size)
     zoom_rect.set_height(new_size)
