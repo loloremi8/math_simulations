@@ -1,19 +1,25 @@
-#include <vector>      // For using dynamic arrays (vectors)
-#include <cmath>       // For mathematical functions like exp()
-#include <iostream>    // For console input/output
-#include <GL/glut.h>   // For OpenGL graphics
-#include <GL/gl.h>     // For OpenGL graphics
+#include <vector>
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <GL/glut.h>   // GLUT must be included before gl.h
+#include <GL/gl.h>
+#include <GL/freeglut.h>  // Add this for better text rendering
 #include <chrono>      // For high-resolution clock
 #include <thread>      // For sleep function
 #include <algorithm>   // For std::min and std::max
+#include <filesystem>  // For file system operations
+#include <fstream>    // For file output
 
 // Simulation parameters - declare as global constants
 const double Lx = 1.0, Ly = 1.0, Lz = 1.0;              // Domain size
-const int Nx = 200, Ny = 200, Nz = 200;                 // Resolution - grid points
+const int Nx = 180, Ny = 180, Nz = 180;                 // Resolution - grid points
 const double dx = Lx / Nx, dy = Ly / Ny, dz = Lz / Nz;
-const double c = 530.0;                                  // Wave speed
-const double dt = 0.000005;                              // Time steps
-const int Nt = 2000;                                    // Number of frames
+const double c = 310.0;                                  // Wave speed
+const double dt = 0.00001;                              // Time steps
+const int Nt = 1000;                                    // Number of frames
 
 // Global variables for visualization
 std::vector<std::vector<std::vector<double>>> u_current(Nx, std::vector<std::vector<double>>(Ny, std::vector<double>(Nz)));
@@ -22,11 +28,21 @@ std::vector<std::vector<std::vector<double>>> u_next(Nx, std::vector<std::vector
 int currentStep = 0;
 bool simulationRunning = true;
 
+// Add after other global variables
+int frameCount = 0;
+std::chrono::time_point<std::chrono::high_resolution_clock> lastTime;
+float fps = 0.0f;
+
+// In the global variables section:
+//const std::string outputDir = "wave_frames";
+//bool recording = true;  // Control recording
+
 // Function declarations
 void init();
 void calculateNextStep();
 void display();
 double calculateMaxStableC();
+//void saveFrame(int frameNumber);  // Commented out function declaration
 
 // OpenGL visualization functions
 void init() {
@@ -52,6 +68,7 @@ void calculateNextStep() {
         return;
     }
 
+    #pragma omp parallel for collapse(3)
     for (int i = 1; i < Nx - 1; i++) {
         for (int j = 1; j < Ny - 1; j++) {
             for (int k = 1; k < Nz - 1; k++) {
@@ -69,6 +86,17 @@ void calculateNextStep() {
 }
 
 void display() {
+    // Calculate FPS
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+    if (deltaTime >= 1.0f) {
+        fps = frameCount / deltaTime;
+        frameCount = 0;
+        lastTime = currentTime;
+        // Removed console output
+    }
+    frameCount++;
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // Draw coordinate axes
@@ -146,18 +174,17 @@ void display() {
     }
     
     // Draw contour lines - solid black, thicker
-    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);  // Solid black
-    glLineWidth(1.2f);  // Thicker lines for emphasis
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+    glLineWidth(1.2f);
     
-    const float contourInterval = 0.025f;  // Distance between contour lines
-    
+    const float contourInterval = 0.025f;
     for (int i = 0; i < Nx-1; i++) {
         for (int j = 0; j < Ny-1; j++) {
             float h00 = u_current[i][j][Nz/2];
             float h10 = u_current[i+1][j][Nz/2];
             float h01 = u_current[i][j+1][Nz/2];
             
-            // Draw contour line if height crosses a contour level
+            // Draw contour lines
             for (float level = -1.0f; level <= 1.0f; level += contourInterval) {
                 if ((h00 <= level && h10 >= level) || 
                     (h00 >= level && h10 <= level)) {
@@ -182,13 +209,49 @@ void display() {
         }
     }
     
-    glutSwapBuffers();
+    // Draw frame counter and FPS
+    glDisable(GL_DEPTH_TEST);  // Disable depth testing for 2D text
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, 800, 0, 800, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Background box - made smaller to match HELVETICA_10 font size
+    glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
+    glBegin(GL_QUADS);
+    glVertex2f(5, 770);    // Moved up
+    glVertex2f(200, 770);  // Made narrower (from 250 to 200)
+    glVertex2f(200, 790);  // Top position unchanged
+    glVertex2f(5, 790);
+    glEnd();
+
+    // Text rendering - slightly adjusted position
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glRasterPos2f(10.0f, 778.0f);  // Adjusted y position (from 775 to 778)
+    
+    std::stringstream ss;
+    ss << "Frame: " << currentStep << "/" << Nt 
+       << " | FPS: " << static_cast<int>(fps)
+       << " | " << static_cast<int>(100.0f * currentStep / Nt) << "%";
+    
+    std::string text = ss.str();
+    for (const char& c : text) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, c);
+    }
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glEnable(GL_DEPTH_TEST);  // Re-enable depth testing
 
     if (simulationRunning) {
         calculateNextStep();
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    // Remove fixed sleep delay and use variable timing
     glutPostRedisplay();
 }
 
@@ -202,7 +265,42 @@ double calculateMaxStableC() {
     return 1.0 / denominator;
 }
 
+//void saveFrame(int frameNumber) {
+//    // Create output directory if it doesn't exist
+//    std::filesystem::create_directories(outputDir);
+//    
+//    // Prepare filename
+//    std::stringstream ss;
+//    ss << outputDir << "/frame_" << std::setw(5) << std::setfill('0') << frameNumber << ".ppm";
+//    std::string filename = ss.str();
+//    
+//    // Get the window size
+//    GLint viewport[4];
+//    glGetIntegerv(GL_VIEWPORT, viewport);
+//    int width = viewport[2];
+//    int height = viewport[3];
+//    
+//    // Allocate memory for the pixel data
+//    std::vector<unsigned char> pixels(3 * width * height);
+//    
+//    // Read pixels from framebuffer
+//    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+//    
+//    // Save as PPM file
+//    std::ofstream out(filename, std::ios::binary);
+//    out << "P6\n" << width << " " << height << "\n255\n";
+//    
+//    // Flip the image vertically while writing
+//    for (int y = height - 1; y >= 0; y--) {
+//        out.write(reinterpret_cast<char*>(pixels.data() + y * width * 3), width * 3);
+//    }
+//}
+
 int main(int argc, char** argv) {
+    // Initialize timer for FPS calculation
+    lastTime = std::chrono::high_resolution_clock::now();
+    
+    // Check wave speed stability
     double maxC = calculateMaxStableC();
     std::cout << "Maximum stable wave speed (c): " << maxC << std::endl;
     if (c > maxC) {
