@@ -32,17 +32,15 @@ bool simulationRunning = true;
 int frameCount = 0;
 std::chrono::time_point<std::chrono::high_resolution_clock> lastTime;
 float fps = 0.0f;
-
-// In the global variables section:
-//const std::string outputDir = "wave_frames";
-//bool recording = true;  // Control recording
+const std::string outputDir = "wave_frames";
+bool recording = true;  // Control recording
 
 // Function declarations
 void init();
 void calculateNextStep();
 void display();
 double calculateMaxStableC();
-//void saveFrame(int frameNumber);  // Commented out function declaration
+void saveFrame(int frameNumber);
 
 // OpenGL visualization functions
 void init() {
@@ -247,6 +245,12 @@ void display() {
     glPopMatrix();
     glEnable(GL_DEPTH_TEST);  // Re-enable depth testing
 
+    if (recording && simulationRunning) {
+        saveFrame(currentStep);
+    }
+    
+    glutSwapBuffers();
+
     if (simulationRunning) {
         calculateNextStep();
     }
@@ -265,36 +269,36 @@ double calculateMaxStableC() {
     return 1.0 / denominator;
 }
 
-//void saveFrame(int frameNumber) {
-//    // Create output directory if it doesn't exist
-//    std::filesystem::create_directories(outputDir);
-//    
-//    // Prepare filename
-//    std::stringstream ss;
-//    ss << outputDir << "/frame_" << std::setw(5) << std::setfill('0') << frameNumber << ".ppm";
-//    std::string filename = ss.str();
-//    
-//    // Get the window size
-//    GLint viewport[4];
-//    glGetIntegerv(GL_VIEWPORT, viewport);
-//    int width = viewport[2];
-//    int height = viewport[3];
-//    
-//    // Allocate memory for the pixel data
-//    std::vector<unsigned char> pixels(3 * width * height);
-//    
-//    // Read pixels from framebuffer
-//    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-//    
-//    // Save as PPM file
-//    std::ofstream out(filename, std::ios::binary);
-//    out << "P6\n" << width << " " << height << "\n255\n";
-//    
-//    // Flip the image vertically while writing
-//    for (int y = height - 1; y >= 0; y--) {
-//        out.write(reinterpret_cast<char*>(pixels.data() + y * width * 3), width * 3);
-//    }
-//}
+void saveFrame(int frameNumber) {
+    // Create output directory if it doesn't exist
+    std::filesystem::create_directories(outputDir);
+    
+    // Prepare filename
+    std::stringstream ss;
+    ss << outputDir << "/frame_" << std::setw(5) << std::setfill('0') << frameNumber << ".ppm";
+    std::string filename = ss.str();
+    
+    // Get the window size
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    int width = viewport[2];
+    int height = viewport[3];
+    
+    // Allocate memory for the pixel data
+    std::vector<unsigned char> pixels(3 * width * height);
+    
+    // Read pixels from framebuffer
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    
+    // Save as PPM file
+    std::ofstream out(filename, std::ios::binary);
+    out << "P6\n" << width << " " << height << "\n255\n";
+    
+    // Flip the image vertically while writing
+    for (int y = height - 1; y >= 0; y--) {
+        out.write(reinterpret_cast<char*>(pixels.data() + y * width * 3), width * 3);
+    }
+}
 
 int main(int argc, char** argv) {
     // Initialize timer for FPS calculation
@@ -335,3 +339,6 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+// g++ wave_propagation_3D.cpp -o wave_propagation_3D -lGL -lGLU -lglut -fopenmp -O3 -march=native
+// ./wabe_propagation_3D

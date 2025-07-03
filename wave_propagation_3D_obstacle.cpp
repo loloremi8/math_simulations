@@ -342,3 +342,6 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+// g++ wave_propagation_3D_obstacle.cpp -o wave_propagation_3D_obstacle -lGL -lGLU -lglut -fopenmp -O3 -march=native
+// ./wave_propagation_3D_obstacle
