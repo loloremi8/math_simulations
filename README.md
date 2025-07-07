@@ -100,6 +100,43 @@ This repository contains various mathematical simulations implemented in Python.
 - **Description:** Creates a GIF from a sequence of images stored in a directory.
 - **Usage:** Modify the `frames_dir` and `output_filename` variables to specify the input directory and output GIF filename.
 
+### 20. Wave Propagation 3D (C++)
+- **File:** `wave_propagation_3D.cpp`
+- **Description:** C++/OpenGL simulation of wave propagation in a 3D medium using the finite difference method. Real-time visualization with interactive frame counter and FPS display.
+- **Usage:**  
+  Compile with:  
+  `g++ wave_propagation_3D.cpp -o wave_propagation_3D -lGL -lGLU -lglut -fopenmp -O3 -march=native`  
+  Run with:  
+  `./wave_propagation_3D`
+
+### 21. Wave Propagation 3D with Obstacle (C++)
+- **File:** `wave_propagation_3D_obstacle.cpp`
+- **Description:** C++/OpenGL simulation of 3D wave propagation with a pillar obstacle in the grid. Visualizes the effect of an obstacle on wave dynamics.
+- **Usage:**  
+  Compile with:  
+  `g++ wave_propagation_3D_obstacle.cpp -o wave_propagation_3D_obstacle -lGL -lGLU -lglut -fopenmp -O3 -march=native`  
+  Run with:  
+  `./wave_propagation_3D_obstacle`
+
+### 22. Wave Propagation 3D Frame Export (C++)
+- **File:** `wave_propagation_3D_save.cpp`
+- **Description:** C++/OpenGL simulation of 3D wave propagation that saves each frame as an image for later GIF/video creation. Useful for high-quality exports.
+- **Usage:**  
+  Compile with:  
+  `g++ wave_propagation_3D_save.cpp -o wave_propagation_3D_save -lGL -lGLU -lglut -fopenmp -O3 -march=native`  
+  Run with:  
+  `./wave_propagation_3D_save`  
+  After running, use [FFmpeg](https://ffmpeg.org/) to convert frames to GIF or MP4:
+  ```
+  ffmpeg -framerate 30 -i wave_frames/frame_%05d.ppm -vf "fps=30,scale=800:-1:flags=lanczos" output.gif
+  ```
+
+---
+
+**Note:**  
+- These C++ simulations require OpenGL and GLUT (install with `sudo apt-get install freeglut3-dev` on Ubuntu/Debian).
+- For frame export, ensure you have enough disk space for the generated images (almost 4gb for the 2000 frames).
+
 ## Requirements
 
 - Python 3.x
